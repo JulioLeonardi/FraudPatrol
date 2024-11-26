@@ -8,6 +8,8 @@
 #include <set>
 #include <unordered_map>
 #include <algorithm>
+#include <vector>
+#include <stack>
 
 using namespace std;
 
@@ -100,6 +102,88 @@ public:
 
         adjacencyList[past].emplace_back(source);
     }
+
+    
+    
+    
+    // Tarjan's Algorithm to detect cycles
+    vector<vector<int>> detectCycles() {
+        // Initialize variables
+        index = 0;
+        indexes.clear();
+        lowlink.clear();
+        onStack.clear();
+        while (!Nstack.empty()) {
+            Nstack.pop();
+        }
+        cycles.clear();
+
+        // DFS for all unvisited nodes
+        for (auto& nodepair : adjacencyList) {
+            int node = nodepair.first;
+            if (indexes.find(node) == indexes.end()) {
+                strongConnect(node);
+            }
+        }
+
+        // Checks for self-loops
+        auto selfloop = [&](int node) {
+            for (int neighbor : adjacencyList[node]) {
+                if (neighbor == node) {
+                    return true;
+                }
+            }
+            return false;
+        };
+
+        // Filter SCCs to get cycles
+        vector<vector<int>> cycleList;
+        for (auto& SCC : cycles) {
+            if (SCC.size() > 1 || selfloop(SCC[0])) {
+                cycleList.push_back(SCC);
+            }
+        }
+        return cycleList;
+    }
+
+    // Member function for Tarjan's strong connect
+    void strongConnect(int node) {
+        indexes[node] = index;
+        lowlink[node] = index;
+        index++;
+        Nstack.push(node);
+        onStack[node] = true;
+
+        // Finding all successors of the node
+        for (int neighbor : adjacencyList[node]) {
+            // If neighbor is not yet indexed, then we need to recurse on it
+            if (indexes.find(neighbor) == indexes.end()) {
+                strongConnect(neighbor);
+                lowlink[node] = min(lowlink[node], lowlink[neighbor]);
+            } else if (onStack[neighbor]) {
+                // Update the lowlink value if neighbor is in the stack
+                lowlink[node] = min(lowlink[node], indexes[neighbor]);
+            }
+        }
+
+        // If node is a root node, pop the stack and make a strongly connected component
+        if (lowlink[node] == indexes[node]) {
+            vector<int> component;
+            int curNode;
+            do {
+                curNode = Nstack.top();
+                Nstack.pop();
+                onStack[curNode] = false;
+                component.push_back(curNode);
+            } while (curNode != node);
+            cycles.push_back(component);
+        }
+    }
+
+
+
+
+
 
     unordered_map<int, vector<int>> getGraph() {
         return adjacencyList;
