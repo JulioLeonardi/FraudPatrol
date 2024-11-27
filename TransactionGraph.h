@@ -6,6 +6,7 @@
 #define TRANSACTIONGRAPH_H
 #include <random>
 #include <set>
+#include <unordered_set>
 #include <unordered_map>
 #include <algorithm>
 #include <vector>
@@ -28,6 +29,40 @@ class TransactionGraph {
     unordered_map<int, bool> onStack; // Node to on-stack status
     stack<int> Nstack; // Stack for algo
     vector<vector<int>> cycles; // List of cycles
+
+    // Union-find's variables
+    unordered_map<int, int> parent; // Array/map for storing parent nodes
+    vector<pair<int, int>> cycleEdges; // Edges that form cycles
+    int detectedCycles = 0; // Number of cycles detected with Union-Find
+
+    // Initialize Union-Find
+    void initializeUnionFind(int n) {
+        parent.clear(); // Clear parent map before initialization
+        for (int i = 1; i <= n; ++i) {
+            parent[i] = -1; // Each node is its own parent (-1 indicates root)
+        }
+    }
+
+    // Find function
+    int findSet(int node) {
+        if (parent[node] == -1) {
+            return node; // The node is its own parent
+        } else {
+            return parent[node] = findSet(parent[node]); // Path compression
+        }
+    }
+
+    // Union function without rank
+    bool unionNodes(int u, int v) {
+        int rootU = findSet(u);
+        int rootV = findSet(v);
+
+        if (rootU == rootV) {
+            return false; // Means cycle detected
+        }
+        parent[rootU] = rootV; // Merge sets by attaching rootU to rootV
+        return true;
+    }
 
 public:
     TransactionGraph(int cn, int nm, int en, int mincs, int maccs) {
@@ -112,8 +147,6 @@ public:
     }
 
     
-    
-    
     // Tarjan's Algorithm to detect cycles
     vector<vector<int>> detectCycles() {
         // Initialize variables
@@ -189,12 +222,30 @@ public:
     }
 
 
-
-
-
-
     unordered_map<int, vector<int>> getGraph() {
         return adjacencyList;
+    }
+
+    void detectCyclesUnionFind() {
+        initializeUnionFind(nodeNum);
+
+        for (const auto& [u, neighbors] : adjacencyList) {
+            for (int v : neighbors) {
+                if (!unionNodes(u, v)) {
+                    cycleEdges.emplace_back(u, v);
+                    detectedCycles++;
+                }
+            }
+        }
+    }
+
+    // getter for Union-Find detected cycles
+    int getDetectedCycles() const {
+        return detectedCycles;
+    }
+
+    vector<pair<int, int>> getCycleEdges() const {
+        return cycleEdges;
     }
 
 };
