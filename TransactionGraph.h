@@ -21,6 +21,14 @@ class TransactionGraph {
     int minCycleSize;
     int maxCycleSize;
 
+    // Tarjan's variables
+    int index; // Tarjan's index counter
+    unordered_map<int, int> indexes; // node to index value for map
+    unordered_map<int, int> lowlink; // mode to low-link value for map
+    unordered_map<int, bool> onStack; // Node to on-stack status
+    stack<int> Nstack; // Stack for algo
+    vector<vector<int>> cycles; // List of cycles
+
 public:
     TransactionGraph(int cn, int nm, int en, int mincs, int maccs) {
         cycleNum = cn;
