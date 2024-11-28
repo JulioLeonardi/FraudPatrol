@@ -30,39 +30,12 @@ class TransactionGraph {
     stack<int> Nstack; // Stack for algo
     vector<vector<int>> cycles; // List of cycles
 
-    // Union-find's variables
-    unordered_map<int, int> parent; // Array/map for storing parent nodes
-    vector<pair<int, int>> cycleEdges; // Edges that form cycles
-    int detectedCycles = 0; // Number of cycles detected with Union-Find
+    // Union-Find (Disjoint Set) variables
+    unordered_map<int, int> parent;  // Parent node for each node
+    unordered_map<int, int> rank;    // Rank for union by rank
+    unordered_map<int, bool> visited; // To mark visited nodes
+    set<pair<int, int>> cycleUnionEdges;  // Set of edges that form cycles
 
-    // Initialize Union-Find
-    void initializeUnionFind(int n) {
-        parent.clear(); // Clear parent map before initialization
-        for (int i = 1; i <= n; ++i) {
-            parent[i] = -1; // Each node is its own parent (-1 indicates root)
-        }
-    }
-
-    // Find function
-    int findSet(int node) {
-        if (parent[node] == -1) {
-            return node; // The node is its own parent
-        } else {
-            return parent[node] = findSet(parent[node]); // Path compression
-        }
-    }
-
-    // Union function without rank
-    bool unionNodes(int u, int v) {
-        int rootU = findSet(u);
-        int rootV = findSet(v);
-
-        if (rootU == rootV) {
-            return false; // Means cycle detected
-        }
-        parent[rootU] = rootV; // Merge sets by attaching rootU to rootV
-        return true;
-    }
 
 public:
     TransactionGraph(int cn, int nm, int en, int mincs, int maccs) {
@@ -226,26 +199,70 @@ public:
         return adjacencyList;
     }
 
-    void detectCyclesUnionFind() {
-        initializeUnionFind(nodeNum);
+    // Union-Find Functions
+    // Rank method inspired by https://www.geeksforgeeks.org/introduction-to-disjoint-set-data-structure-or-union-find-algorithm/?ref=oin_asr1
+    int findSet(int node) {
+        if (parent.find(node) == parent.end()) {
+            parent[node] = node;
+            rank[node] = 0;
+        }
 
-        for (const auto& [u, neighbors] : adjacencyList) {
-            for (int v : neighbors) {
-                if (!unionNodes(u, v)) {
-                    cycleEdges.emplace_back(u, v);
-                    detectedCycles++;
-                }
+        if (parent[node] != node) {
+            parent[node] = findSet(parent[node]);
+        }
+
+        return parent[node];
+    }
+
+    void unionSets(int node1, int node2) {
+        int root1 = findSet(node1);
+        int root2 = findSet(node2);
+
+        if (root1 != root2) {
+            // Union by rank
+            if (rank[root1] > rank[root2]) {
+                parent[root2] = root1;
+            } else if (rank[root1] < rank[root2]) {
+                parent[root1] = root2;
+            } else {
+                parent[root2] = root1;
+                rank[root1]++;
             }
         }
     }
 
-    // getter for Union-Find detected cycles
-    int getDetectedCycles() const {
-        return detectedCycles;
+// Detect cycles using Union-Find
+    bool detectUnionFindCycles() {
+        bool cycleFound = false;
+
+        for (auto& nodepair : adjacencyList) {
+            int node = nodepair.first;
+
+            for (int neighbor : nodepair.second) {
+                // Checks for self-loop
+                if (node == neighbor) {
+                    cycleUnionEdges.insert({node, neighbor});
+                    cycleFound = true;
+                    continue;  // Continues with the next neighbor
+                }
+
+                // If both nodes are in the same set, we have a cycle
+                if (findSet(node) == findSet(neighbor)) {
+                    // Add the edge to the set of cycle edges
+                    cycleUnionEdges.insert({node, neighbor});
+                    cycleFound = true;
+                }
+
+                // Union the sets of the two nodes
+                unionSets(node, neighbor);
+            }
+        }
+
+        return cycleFound;
     }
 
-    vector<pair<int, int>> getCycleEdges() const {
-        return cycleEdges;
+    set<pair<int, int>> getCycleEdges() {
+        return cycleUnionEdges;
     }
 
 };
