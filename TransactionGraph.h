@@ -30,11 +30,11 @@ class TransactionGraph {
     stack<int> Nstack; // Stack for algo
     vector<vector<int>> cycles; // List of cycles
 
-    // Union-Find (Disjoint Set) variables
-    unordered_map<int, int> parent;  // Parent node for each node
-    unordered_map<int, int> rank;    // Rank for union by rank
-    unordered_map<int, bool> visited; // To mark visited nodes
-    set<pair<int, int>> cycleUnionEdges;  // Set of edges that form cycles
+    // Union-find's variables
+    unordered_map<int, int> parentNode;  // To store the parent node for each node
+    unordered_map<int, int> level;    // Level map for union by rank
+    unordered_map<int, bool> visitedNodes; // Marks visited nodes
+    set<pair<int, int>> cycleConnections;  // Set of edges that form cycles
 
 
 public:
@@ -202,58 +202,67 @@ public:
     // Union-Find Functions
     // Rank method inspired by https://www.geeksforgeeks.org/introduction-to-disjoint-set-data-structure-or-union-find-algorithm/?ref=oin_asr1
     int findSet(int node) {
-        if (parent.find(node) == parent.end()) {
-            parent[node] = node;
-            rank[node] = 0;
+        // check if node exists in parentNode
+        if (parentNode.find(node) == parentNode.end()) {
+            // parent node is node itself and initialize a level (aka rank) of 0
+            parentNode[node] = node;
+            level[node] = 0;
         }
 
-        if (parent[node] != node) {
-            parent[node] = findSet(parent[node]);
+        // path compression helps make future find operations faster
+        if (parentNode[node] != node) {
+            parentNode[node] = findSet(parentNode[node]);
         }
 
-        return parent[node];
+        return parentNode[node];
     }
 
+// Union operation
     void unionSets(int node1, int node2) {
+        // find roots of node1 and node2
         int root1 = findSet(node1);
         int root2 = findSet(node2);
 
         if (root1 != root2) {
-            // Union by rank
-            if (rank[root1] > rank[root2]) {
-                parent[root2] = root1;
-            } else if (rank[root1] < rank[root2]) {
-                parent[root1] = root2;
+            // union by rank
+            if (level[root1] > level[root2]) {
+                // attach root2 under root1
+                parentNode[root2] = root1;
+            } else if (level[root1] < level[root2]) {
+                // attach root1 under root2
+                parentNode[root1] = root2;
             } else {
-                parent[root2] = root1;
-                rank[root1]++;
+                // same rank: attach root2 under root1
+                // increase level (aka rank) of root1
+                parentNode[root2] = root1;
+                level[root1]++;
             }
         }
     }
 
-// Detect cycles using Union-Find
+// Function to detect cycles using Union-Find
     bool detectUnionFindCycles() {
         bool cycleFound = false;
 
-        for (auto& nodepair : adjacencyList) {
-            int node = nodepair.first;
+        for (auto& nodes : adjacencyList) {
+            int node = nodes.first;
 
-            for (int neighbor : nodepair.second) {
-                // Checks for self-loop
+            for (int neighbor : nodes.second) {
+                // self-loop edge case
                 if (node == neighbor) {
-                    cycleUnionEdges.insert({node, neighbor});
+                    cycleConnections.insert({node, neighbor});
                     cycleFound = true;
-                    continue;  // Continues with the next neighbor
+                    continue;  // continues along the next neighbor
                 }
 
-                // If both nodes are in the same set, we have a cycle
+                // If findSet is true, cycle is detected
                 if (findSet(node) == findSet(neighbor)) {
-                    // Add the edge to the set of cycle edges
-                    cycleUnionEdges.insert({node, neighbor});
+                    // Add the cycle-causing edge to cycleConnections set
+                    cycleConnections.insert({node, neighbor});
                     cycleFound = true;
                 }
 
-                // Union the sets of the two nodes
+                // union the sets of the two nodes if not already together
                 unionSets(node, neighbor);
             }
         }
@@ -262,7 +271,7 @@ public:
     }
 
     set<pair<int, int>> getCycleEdges() {
-        return cycleUnionEdges;
+        return cycleConnections;
     }
 
 };
