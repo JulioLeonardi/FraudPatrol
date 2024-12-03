@@ -220,6 +220,7 @@ class UnionFindCycle {
     unordered_map<int, int> level;    // Level map for union by rank
     unordered_map<int, bool> visitedNodes; // Marks visited nodes
     set<pair<int, int>> cycleConnections;  // Set of edges that form cycles
+    int unionFindCycleNumber = 0;
 
     public:
 
@@ -271,32 +272,43 @@ class UnionFindCycle {
     // Function to detect cycles using Union-Find
     bool detectCycles() {
         bool cycleFound = false;
+        set<pair<int, int>> visitedEdges; // Helps ensure each edge is processed only once
 
         for (auto& nodes : adjacencyList) {
             int node = nodes.first;
 
             for (int neighbor : nodes.second) {
-                // self-loop edge case
+                // Ensure each edge is processed only once
+                if (visitedEdges.count({min(node, neighbor), max(node, neighbor)}) > 0) {
+                    continue; // Skip already processed edges
+                }
+                visitedEdges.insert({min(node, neighbor), max(node, neighbor)});
+
+                // Self-loop case
                 if (node == neighbor) {
                     cycleConnections.insert({node, neighbor});
                     cycleFound = true;
-                    continue;  // continues along the next neighbor
+                    unionFindCycleNumber++;
+                    continue;
                 }
 
-                // If findSet is true, cycle is detected
+                // If the nodes are already in the same set, a cycle is detected
                 if (findSet(node) == findSet(neighbor)) {
-                    // Add the cycle-causing edge to cycleConnections set
+                    // Add the cycle-causing edge to the cycleConnections set
                     cycleConnections.insert({node, neighbor});
                     cycleFound = true;
+                    unionFindCycleNumber++;
+                } else {
+                    // Union the sets of the two nodes if not already in the same set
+                    unionSets(node, neighbor);
                 }
-
-                // union the sets of the two nodes if not already together
-                unionSets(node, neighbor);
             }
         }
+        return cycleFound;
 
         return cycleFound;
     }
+
 
     set<pair<int, int>> getCycleEdges() {
         return cycleConnections;
@@ -304,7 +316,8 @@ class UnionFindCycle {
 
     //added functions for results (Julio)
     int getCycleNumber() const {
-        return cycleConnections.size();
+        //return cycleConnections.size();
+        return unionFindCycleNumber;
     }
 
     void resetVisitedNodes() {
