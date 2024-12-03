@@ -1,5 +1,5 @@
 //
-// Created by jalg0 on 11/24/2024.
+// Created by jalg0, sg3, Alejandra Alzamora on 11/24/2024.
 //
 
 #ifndef TRANSACTIONGRAPH_H
@@ -125,7 +125,7 @@ public:
 };
 
 //Sebastian Garcia's part
-class TrajanCycle {
+class TarjanCycle{
     unordered_map<int, vector<int>> adjacencyList;
     int index; // Tarjan's index counter
     unordered_map<int, int> indexes; // node to index value for map
@@ -136,7 +136,7 @@ class TrajanCycle {
 
     public:
 
-    TrajanCycle(const unordered_map<int, vector<int>>& al) {
+    TarjanCycle(const unordered_map<int, vector<int>>& al) {
         adjacencyList = al;
     }
 
@@ -160,11 +160,18 @@ class TrajanCycle {
             }
         }
 
-        // Filter SCCs to get cycles
+
+        // Filter SCCs to get cycles, including self-loops
         vector<vector<int>> cycleList;
         for (auto& SCC : cycles) {
             if (SCC.size() > 1) {
                 cycleList.push_back(SCC);
+            } else {
+                int node = SCC[0];
+                // Check for self-loop
+                if (find(adjacencyList[node].begin(), adjacencyList[node].end(), node) != adjacencyList[node].end()) {
+                    cycleList.push_back(SCC);
+                }
             }
         }
         cycles = cycleList;
@@ -180,12 +187,12 @@ class TrajanCycle {
 
         // Finding all successors of the node
         for (int neighbor : adjacencyList[node]) {
-            // If neighbor is not yet indexed, then we need to recurse on it
             if (indexes.find(neighbor) == indexes.end()) {
+                // Successor neighbor has not yet been visited; recurse on it
                 strongConnect(neighbor);
                 lowlink[node] = min(lowlink[node], lowlink[neighbor]);
             } else if (onStack[neighbor]) {
-                // Update the lowlink value if neighbor is in the stack
+                // Successor neighbor is in stack and hence in the current SCC
                 lowlink[node] = min(lowlink[node], indexes[neighbor]);
             }
         }
