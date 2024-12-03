@@ -305,9 +305,39 @@ class UnionFindCycle {
             }
         }
         return cycleFound;
-
-        return cycleFound;
     }
+
+    int detectCycleSourceNode() {
+        set<pair<int, int>> visitedEdges; // To ensure each edge is processed only once
+
+        for (auto& nodes : adjacencyList) {
+            int node = nodes.first;
+
+            for (int neighbor : nodes.second) {
+                // Ensure each edge is processed only once
+                if (visitedEdges.count({min(node, neighbor), max(node, neighbor)}) > 0) {
+                    continue; // Skip already processed edges
+                }
+                visitedEdges.insert({min(node, neighbor), max(node, neighbor)});
+
+                // Self-loop case
+                if (node == neighbor) {
+                    return node; // Return the node containing a self-loop
+                }
+
+                // If the nodes are already in the same set, a cycle is detected
+                if (findSet(node) == findSet(neighbor)) {
+                    return node; // Return the source node responsible for the cycle
+                }
+
+                // Union the sets of the two nodes if not already in the same set
+                unionSets(node, neighbor);
+            }
+        }
+
+        return -1; // If no cycles are found
+    }
+
 
 
     set<pair<int, int>> getCycleEdges() {
