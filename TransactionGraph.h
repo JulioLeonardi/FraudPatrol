@@ -14,31 +14,17 @@
 
 using namespace std;
 
-class TransactionGraph {
+//Julio Leonardi's part
+class TransactionGraph { // graph will hopefully not feature self loops
     unordered_map<int, vector<int>> adjacencyList;
     int nodeNum;
     int cycleNum; // code will have at least cycleNum cycles, cycle generation may add more
-    int edgeNum;
+    int edgeNum; // code will have at least this amount of edges, cycle generation may add more
     int minCycleSize;
     int maxCycleSize;
 
-    // Tarjan's variables
-    int index; // Tarjan's index counter
-    unordered_map<int, int> indexes; // node to index value for map
-    unordered_map<int, int> lowlink; // mode to low-link value for map
-    unordered_map<int, bool> onStack; // Node to on-stack status
-    stack<int> Nstack; // Stack for algo
-    vector<vector<int>> cycles; // List of cycles
-
-    // Union-find's variables
-    unordered_map<int, int> parentNode;  // To store the parent node for each node
-    unordered_map<int, int> level;    // Level map for union by rank
-    unordered_map<int, bool> visitedNodes; // Marks visited nodes
-    set<pair<int, int>> cycleConnections;  // Set of edges that form cycles
-
-
 public:
-    TransactionGraph(int cn, int nm, int en, int mincs, int maccs) {
+    TransactionGraph(int nm, int en, int cn, int mincs, int maccs) {
         cycleNum = cn;
         nodeNum = nm;
         edgeNum = en;
@@ -52,6 +38,13 @@ public:
         random_device dev;
         mt19937 rng(dev());
         uniform_int_distribution<int> node(1, nodeNum);
+
+        while (adjacencyList.size() < nodeNum) {
+            int u = node(rng);
+            if (adjacencyList.count(u)==0) {
+                adjacencyList[u] = {};
+            }
+        }
 
         int edgesAdded = 0;
         while (edgesAdded < edgeNum) {
@@ -71,20 +64,27 @@ public:
         int cyclesAdded = 0;
 
         while (cyclesAdded < cycleNum) {
-            int source;
-            do {
+            int source = node(rng);
+            while (addedNodes.find(source) != addedNodes.end()) {
                 source = node(rng);
-            } while (addedNodes.find(source) != addedNodes.end());
+            }
 
             addCycle(source);
             cyclesAdded++;
 
             set<int> cycleNodes;
             int curNode = source;
-            do {
-                cycleNodes.insert(curNode);
+
+            cycleNodes.insert(curNode);
+
+            while (true) {
+                if (adjacencyList[curNode].empty()) break;
+
                 curNode = adjacencyList[curNode].back();
-            } while (curNode != source);
+                cycleNodes.insert(curNode);
+
+                if (curNode == source) break;
+            }
 
             addedNodes.insert(cycleNodes.begin(), cycleNodes.end());
         }
@@ -119,9 +119,29 @@ public:
         adjacencyList[past].emplace_back(source);
     }
 
-    
+    unordered_map<int, vector<int>> getGraph() {
+        return adjacencyList;
+    }
+};
+
+//Sebastian Garcia's part
+class TrajanCycle {
+    unordered_map<int, vector<int>> adjacencyList;
+    int index; // Tarjan's index counter
+    unordered_map<int, int> indexes; // node to index value for map
+    unordered_map<int, int> lowlink; // mode to low-link value for map
+    unordered_map<int, bool> onStack; // Node to on-stack status
+    stack<int> Nstack; // Stack for algo
+    vector<vector<int>> cycles; // List of cycles
+
+    public:
+
+    TrajanCycle(const unordered_map<int, vector<int>>& al) {
+        adjacencyList = al;
+    }
+
     // Tarjan's Algorithm to detect cycles
-    vector<vector<int>> detectCycles() {
+    void detectCycles() {
         // Initialize variables
         index = 0;
         indexes.clear();
@@ -140,24 +160,14 @@ public:
             }
         }
 
-        // Checks for self-loops
-        auto selfloop = [&](int node) {
-            for (int neighbor : adjacencyList[node]) {
-                if (neighbor == node) {
-                    return true;
-                }
-            }
-            return false;
-        };
-
         // Filter SCCs to get cycles
         vector<vector<int>> cycleList;
         for (auto& SCC : cycles) {
-            if (SCC.size() > 1 || selfloop(SCC[0])) {
+            if (SCC.size() > 1) {
                 cycleList.push_back(SCC);
             }
         }
-        return cycleList;
+        cycles = cycleList;
     }
 
     // Member function for Tarjan's strong connect
@@ -194,9 +204,27 @@ public:
         }
     }
 
+    vector<vector<int>> getCyclePaths() {
+        return cycles;
+    }
 
-    unordered_map<int, vector<int>> getGraph() {
-        return adjacencyList;
+    int getCycleNumber() {
+        return cycles.size();
+    }
+};
+
+//Alejandra Alzamora's part
+class UnionFindCycle {
+    unordered_map<int, vector<int>> adjacencyList;
+    unordered_map<int, int> parentNode;  // To store the parent node for each node
+    unordered_map<int, int> level;    // Level map for union by rank
+    unordered_map<int, bool> visitedNodes; // Marks visited nodes
+    set<pair<int, int>> cycleConnections;  // Set of edges that form cycles
+
+    public:
+
+    UnionFindCycle(unordered_map<int, vector<int>> al) {
+        adjacencyList = al;
     }
 
     // Union-Find Functions
@@ -217,7 +245,7 @@ public:
         return parentNode[node];
     }
 
-// Union operation
+    // Union operation
     void unionSets(int node1, int node2) {
         // find roots of node1 and node2
         int root1 = findSet(node1);
@@ -240,8 +268,8 @@ public:
         }
     }
 
-// Function to detect cycles using Union-Find
-    bool detectUnionFindCycles() {
+    // Function to detect cycles using Union-Find
+    bool detectCycles() {
         bool cycleFound = false;
 
         for (auto& nodes : adjacencyList) {
@@ -274,5 +302,36 @@ public:
         return cycleConnections;
     }
 
+    //added functions for results (Julio)
+    int getCycleNumber() const {
+        return cycleConnections.size();
+    }
+
+    void resetVisitedNodes() {
+        for (auto& node : visitedNodes) {
+            node.second = false;
+        }
+    }
+
+    unordered_map<int, vector<int>> getCyclePaths() {
+        unordered_map<int, vector<int>> cyclePaths;
+
+        for (const auto& edge : cycleConnections) {
+            int startNode = edge.first;
+            int current = startNode;
+            vector<int> path;
+
+            while (visitedNodes[current] == false) {
+                visitedNodes[current] = true;
+                path.push_back(current);
+                current = parentNode[current];
+            }
+
+            cyclePaths[startNode] = path;
+            resetVisitedNodes();
+        }
+        return cyclePaths;
+    }
 };
+
 #endif //TRANSACTIONGRAPH_H
