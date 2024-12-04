@@ -134,10 +134,13 @@ class TarjanCycle{
     stack<int> Nstack; // Stack for algo
     vector<vector<int>> cycles; // List of cycles
 
-    public:
+    int cycleSourceNode;//source node for cycle
+
+public:
 
     TarjanCycle(const unordered_map<int, vector<int>>& al) {
         adjacencyList = al;
+        cycleSourceNode = -1;
     }
 
     // Tarjan's Algorithm to detect cycles
@@ -151,6 +154,7 @@ class TarjanCycle{
             Nstack.pop();
         }
         cycles.clear();
+        cycleSourceNode = -1; //Reset cycle
 
         // DFS for all unvisited nodes
         for (auto& nodepair : adjacencyList) {
@@ -208,7 +212,29 @@ class TarjanCycle{
                 component.push_back(curNode);
             } while (curNode != node);
             cycles.push_back(component);
+
+            //Checks if compeonent forms the cycle.
+            bool isCycle = false;
+            if (component.size() > 1) {
+                isCycle = true;
+            } else {
+                // Check for self-loop
+                int singleNode = component[0];
+                if (find(adjacencyList[singleNode].begin(), adjacencyList[singleNode].end(), singleNode) != adjacencyList[singleNode].end()) {
+                    isCycle = true;
+                }
+            }
+
+            // If a cycle is detected and no source node has been set yet, set it
+            if (isCycle && cycleSourceNode == -1) {
+                cycleSourceNode = node;
+            }
         }
+    }
+
+    int detectCycleSourceNode() {
+        detectCycles();
+        return cycleSourceNode;
     }
 
     vector<vector<int>> getCyclePaths() {
