@@ -15,21 +15,21 @@
 using namespace std;
 
 //Julio Leonardi's part
-class TransactionGraph { // graph will hopefully not feature self loops
+class TransactionGraph {
     unordered_map<int, vector<int>> adjacencyList;
     int nodeNum;
     int cycleNum; // code will have at least cycleNum cycles, cycle generation may add more
-    int edgeNum; // code will have at least this amount of edges, cycle generation may add more
+    int edgeNum;
     int minCycleSize;
     int maxCycleSize;
 
 public:
-    TransactionGraph(int nm, int en, int cn, int mincs, int maccs) {
-        cycleNum = cn;
+    TransactionGraph(int nm, int en) {//Artificial cycle addition is suppressed with this modified constructor
+        cycleNum = 0;
         nodeNum = nm;
         edgeNum = en;
-        minCycleSize = mincs;
-        maxCycleSize = maccs;
+        minCycleSize = 0;
+        maxCycleSize = 0;
         makeGraph();
     }
 
@@ -138,7 +138,7 @@ class TarjanCycle{
 
 public:
 
-    TarjanCycle(const unordered_map<int, vector<int>>& al) {
+    TarjanCycle(unordered_map<int, vector<int>> al) {
         adjacencyList = al;
         cycleSourceNode = -1;
     }
